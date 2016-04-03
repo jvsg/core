@@ -39,8 +39,8 @@ namespace sd { namespace outliner {
 IteratorPosition::IteratorPosition()
 : mnText(0)
 , mnPageIndex(-1)
-, mePageKind(PK_STANDARD)
-, meEditMode(EM_PAGE)
+, mePageKind( PageKind::Standard )
+, meEditMode( EditMode::Page )
 {
 }
 
@@ -229,26 +229,26 @@ Iterator OutlinerContainer::CreateDocumentIterator (
         default:
             if (bDirectionIsForward)
             {
-                ePageKind = PK_STANDARD;
-                eEditMode = EM_PAGE;
+                ePageKind = PageKind::Standard;
+                eEditMode = EditMode::Page;
             }
             else
             {
-                ePageKind = PK_HANDOUT;
-                eEditMode = EM_MASTERPAGE;
+                ePageKind = PageKind::Handout;
+                eEditMode = EditMode::MasterPage;
             }
             break;
 
         case END:
             if (bDirectionIsForward)
             {
-                ePageKind = PK_HANDOUT;
-                eEditMode = EM_MASTERPAGE;
+                ePageKind = PageKind::Handout;
+                eEditMode = EditMode::MasterPage;
             }
             else
             {
-                ePageKind = PK_STANDARD;
-                eEditMode = EM_PAGE;
+                ePageKind = PageKind::Standard;
+                eEditMode = EditMode::Page;
             }
             break;
 
@@ -262,8 +262,8 @@ Iterator OutlinerContainer::CreateDocumentIterator (
             }
             else
             {
-                ePageKind = PK_STANDARD;
-                eEditMode = EM_PAGE;
+                ePageKind = PageKind::Standard;
+                eEditMode = EditMode::Page;
             }
             break;
     }
@@ -294,10 +294,10 @@ sal_Int32 OutlinerContainer::GetPageIndex (
 
     switch (eEditMode)
     {
-        case EM_PAGE:
+        case EditMode::Page:
             nPageCount = pDocument->GetSdPageCount (ePageKind);
             break;
-        case EM_MASTERPAGE:
+        case EditMode::MasterPage:
             nPageCount = pDocument->GetMasterSdPageCount(ePageKind);
             break;
         default:
@@ -359,8 +359,8 @@ IteratorImplBase::IteratorImplBase(SdDrawDocument* pDocument,
     }
     else
     {
-        maPosition.mePageKind = PK_STANDARD;
-        maPosition.meEditMode = EM_PAGE;
+        maPosition.mePageKind = PageKind::Standard;
+        maPosition.meEditMode = EditMode::Page;
     }
 }
 
@@ -623,7 +623,7 @@ void ViewIteratorImpl::SetPage (sal_Int32 nPageIndex)
         maPosition.mnPageIndex = nPageIndex;
 
         sal_Int32 nPageCount;
-        if (maPosition.meEditMode == EM_PAGE)
+        if (maPosition.meEditMode == EditMode::Page)
             nPageCount = mpDocument->GetSdPageCount(maPosition.mePageKind);
         else
             nPageCount = mpDocument->GetMasterSdPageCount(
@@ -636,7 +636,7 @@ void ViewIteratorImpl::SetPage (sal_Int32 nPageIndex)
         // side is detected here and has to be reacted to by the caller.
         if (nPageIndex>=0 && nPageIndex < nPageCount)
         {
-            if (maPosition.meEditMode == EM_PAGE)
+            if (maPosition.meEditMode == EditMode::Page)
                 mpPage = mpDocument->GetSdPage (
                     (sal_uInt16)nPageIndex,
                     maPosition.mePageKind);
@@ -705,7 +705,7 @@ DocumentIteratorImpl::DocumentIteratorImpl (
     : ViewIteratorImpl (nPageIndex, pDocument, rpViewShellWeak, bDirectionIsForward,
         ePageKind, eEditMode)
 {
-    if (eEditMode == EM_PAGE)
+    if (eEditMode == EditMode::Page)
         mnPageCount = pDocument->GetSdPageCount (ePageKind);
     else
         mnPageCount = pDocument->GetMasterSdPageCount(ePageKind);
@@ -737,25 +737,25 @@ void DocumentIteratorImpl::GotoNextText()
         if (maPosition.mnPageIndex >= mnPageCount)
         {
             // Switch to master page.
-            if (maPosition.meEditMode == EM_PAGE)
+            if (maPosition.meEditMode == EditMode::Page)
             {
-                maPosition.meEditMode = EM_MASTERPAGE;
+                maPosition.meEditMode = EditMode::MasterPage;
                 SetPage (0);
             }
 
             // Switch to next view mode.
             else
             {
-                if (maPosition.mePageKind == PK_HANDOUT)
+                if ( maPosition.mePageKind == PageKind::Handout )
                     // Not really necessary but makes things more clear.
                     bSetToOnePastLastPage = true;
                 else
                 {
-                    maPosition.meEditMode = EM_PAGE;
-                    if (maPosition.mePageKind == PK_STANDARD)
-                        maPosition.mePageKind = PK_NOTES;
-                    else if (maPosition.mePageKind == PK_NOTES)
-                        maPosition.mePageKind = PK_HANDOUT;
+                    maPosition.meEditMode = EditMode::Page;
+                    if ( maPosition.mePageKind == PageKind::Standard )
+                        maPosition.mePageKind = PageKind::Notes;
+                    else if ( maPosition.mePageKind == PageKind::Notes )
+                        maPosition.mePageKind = PageKind::Handout;
                     SetPage (0);
                 }
             }
@@ -766,24 +766,24 @@ void DocumentIteratorImpl::GotoNextText()
         if (maPosition.mnPageIndex < 0)
         {
             // Switch from master pages to draw pages.
-            if (maPosition.meEditMode == EM_MASTERPAGE)
+            if (maPosition.meEditMode == EditMode::MasterPage)
             {
-                maPosition.meEditMode = EM_PAGE;
+                maPosition.meEditMode = EditMode::Page;
                 bSetToOnePastLastPage = true;
             }
 
             // Switch to previous view mode.
             else
             {
-                if (maPosition.mePageKind == PK_STANDARD)
+                if ( maPosition.mePageKind == PageKind::Standard )
                     SetPage (-1);
                 else
                 {
-                    maPosition.meEditMode = EM_MASTERPAGE;
-                    if (maPosition.mePageKind == PK_HANDOUT)
-                        maPosition.mePageKind = PK_NOTES;
-                    else if (maPosition.mePageKind == PK_NOTES)
-                        maPosition.mePageKind = PK_STANDARD;
+                    maPosition.meEditMode = EditMode::MasterPage;
+                    if ( maPosition.mePageKind == PageKind::Handout )
+                        maPosition.mePageKind = PageKind::Notes;
+                    else if ( maPosition.mePageKind == PageKind::Notes )
+                        maPosition.mePageKind = PageKind::Standard;
                     bSetToOnePastLastPage = true;
                 }
             }
@@ -794,7 +794,7 @@ void DocumentIteratorImpl::GotoNextText()
     {
         // Get new page count;
         sal_Int32 nPageCount;
-        if (maPosition.meEditMode == EM_PAGE)
+        if (maPosition.meEditMode == EditMode::Page)
             nPageCount = mpDocument->GetSdPageCount (maPosition.mePageKind);
         else
             nPageCount = mpDocument->GetMasterSdPageCount(maPosition.mePageKind);
